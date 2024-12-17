@@ -1,110 +1,5 @@
 import React, { useState } from "react";
-
-// Asset Class
-class Asset {
-  name: string;
-  totalSupply: number;
-
-  constructor(name: string) {
-    this.name = name;
-    this.totalSupply = 0;
-  }
-
-  toString() {
-    return `Asset(${this.name})`;
-  }
-}
-
-// Account Class
-class Account {
-  owner: string;
-  holdings: Record<string, number>;
-
-  constructor(owner: string) {
-    this.owner = owner;
-    this.holdings = {};
-  }
-
-  addAsset(Asset: Asset, amount: number) {
-    if (!this.holdings[Asset.name]) {
-      this.holdings[Asset.name] = 0;
-    }
-    this.holdings[Asset.name] += amount;
-  }
-
-  removeAsset(Asset: Asset, amount: number): boolean {
-    if (this.holdings[Asset.name] && this.holdings[Asset.name] >= amount) {
-      this.holdings[Asset.name] -= amount;
-      if (this.holdings[Asset.name] === 0) {
-        delete this.holdings[Asset.name];
-      }
-      return true;
-    }
-    return false;
-  }
-
-  getBalance(Asset: Asset): number {
-    return this.holdings[Asset.name] || 0;
-  }
-
-  toString() {
-    return `Account(${this.owner}, Holdings: ${JSON.stringify(this.holdings)})`;
-  }
-}
-
-// Exchange Class
-class Exchange {
-  name: string;
-  pools: Record<string, Record<string, number>>;
-
-  constructor(name: string) {
-    this.name = name;
-    this.pools = {};
-  }
-
-  addPool(Asset1: Asset, Asset2: Asset) {
-    this.pools[`${Asset1.name}-${Asset2.name}`] = {
-      [Asset1.name]: 0,
-      [Asset2.name]: 0,
-    };
-  }
-
-  deposit(Asset: Asset, amount: number, account: Account): boolean {
-    if (account.removeAsset(Asset, amount)) {
-      for (const pool of Object.values(this.pools)) {
-        if (pool[Asset.name] !== undefined) {
-          pool[Asset.name] += amount;
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  trade(
-    AssetFrom: Asset,
-    AssetTo: Asset,
-    amount: number,
-    account: Account,
-  ): boolean {
-    for (const [key, pool] of Object.entries(this.pools)) {
-      const [res1, res2] = key.split("-");
-      if (res1 === AssetFrom.name && res2 === AssetTo.name) {
-        if (pool[res1] >= amount) {
-          pool[res1] -= amount;
-          pool[res2] += amount;
-          account.addAsset(new Asset(res2), amount);
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  toString() {
-    return `Exchange(${this.name}, Pools: ${JSON.stringify(this.pools)})`;
-  }
-}
+import { Asset, Account, Exchange } from "../core/simustruct_classes";
 
 const EconomicsSimulator: React.FC = () => {
   // State Management
@@ -148,6 +43,19 @@ const EconomicsSimulator: React.FC = () => {
 
       if (targetAccount && targetAsset) {
         targetAccount.addAsset(targetAsset, assetAmount);
+        setAccounts([...accounts]);
+      }
+    }
+  };
+
+  // Remove Asset from Account
+  const removeAssetFromAccount = () => {
+    if (selectedAccount && selectedAsset && assetAmount > 0) {
+      const targetAccount = accounts.find((a) => a.owner === selectedAccount);
+      const targetAsset = assets.find((a) => a.name === selectedAsset);
+
+      if (targetAccount && targetAsset) {
+        targetAccount.removeAsset(targetAsset, assetAmount);
         setAccounts([...accounts]);
       }
     }
@@ -262,6 +170,12 @@ const EconomicsSimulator: React.FC = () => {
               className="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
             >
               Add Asset to Account
+            </button>
+            <button
+              onClick={removeAssetFromAccount}
+              className="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600"
+            >
+              Remove Asset from Account
             </button>
           </div>
         </div>
